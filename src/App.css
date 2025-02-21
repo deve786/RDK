@@ -1,48 +1,162 @@
-.App {
+/* src/App.css */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Arial', sans-serif;
+  background-color: #f0f2f5;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: black;
-  margin: 0;
-  font-family: Arial, sans-serif;
+  min-height: 100vh;
 }
 
-canvas {
-  background-color: white;
-}
-
-#instructions {
-  color: white;
-  font-size: 24px;
+.app-container {
   text-align: center;
-  margin-top: 20px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 700px;
+  margin: 10px;
+  transition: all 0.3s ease-in-out;
 }
 
-.input-container {
+.app-title {
+  font-size: 2rem;
+  color: #333;
+  margin-bottom: 20px;
+  font-weight: bold;
+}
+
+.experiment-canvas {
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #f9f9f9;
+  transition: box-shadow 0.2s ease;
+  max-width: 100%;
+  height: auto;
+}
+
+.experiment-canvas:hover {
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.input-section {
+  margin-top: 20px;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
+  gap: 15px;
+}
+
+.trial-input {
+  padding: 12px;
+  font-size: 16px;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  width: 150px;
+  max-width: 100%;
+  transition: border-color 0.3s ease;
+}
+
+.trial-input:focus {
+  outline: none;
+  border-color: #1e90ff;
+  box-shadow: 0 0 5px rgba(30, 144, 255, 0.5);
+}
+
+.start-button, .start-again-button {
+  padding: 12px 24px;
+  font-size: 16px;
+  background-color: #1e90ff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.start-button:hover, .start-again-button:hover {
+  background-color: #007bff;
+}
+
+.start-button:active, .start-again-button:active {
+  transform: scale(0.98);
+}
+
+.results-section {
   margin-top: 20px;
 }
 
-.input-container input {
-  padding: 10px;
-  font-size: 16px;
-  margin-bottom: 10px;
-  width: 200px;
-}
-
-.input-container button {
+.instructions {
+  margin-top: 15px;
   padding: 10px 20px;
-  font-size: 16px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  cursor: pointer;
+  background-color: #e9ecef;
+  color: #555;
+  font-size: 18px;
+  border-radius: 6px;
+  border-left: 4px solid #1e90ff;
+  transition: opacity 0.3s ease;
 }
 
-.input-container button:hover {
-  background-color: #45a049;
+/* Responsive Design */
+@media (max-width: 768px) {
+  .app-title {
+    font-size: 1.75rem;
+  }
+
+  .experiment-canvas {
+    width: 100%;
+    height: 300px; /* Adjusted for smaller screens */
+  }
+
+  .input-section {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .trial-input, .start-button, .start-again-button {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-container {
+    padding: 15px;
+    margin: 5px;
+  }
+
+  .app-title {
+    font-size: 1.5rem;
+  }
+
+  .experiment-canvas {
+    width: 100%;
+    height: 250px; /* Further reduced for mobile */
+  }
+
+  .trial-input {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  .start-button, .start-again-button {
+    font-size: 14px;
+    padding: 10px 20px;
+  }
+
+  .instructions {
+    font-size: 16px;
+    padding: 8px 15px;
+  }
+}
+
+/* Ensure canvas content scales */
+@media (max-width: 600px) {
+  .experiment-canvas {
+    width: 100%;
+    height: auto;
+  }
 }

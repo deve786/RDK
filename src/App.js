@@ -21,7 +21,6 @@ const App = () => {
   const [trials, setTrials] = useState([]);
   const [numTrials, setNumTrials] = useState('');
 
-  // Parameters
   const parameters = {
     fixationSize: 0.03 * 400,
     iti: 400,
@@ -43,7 +42,6 @@ const App = () => {
   const centerX = 600 / 2;
   const centerY = 400 / 2;
 
-  // Generate trials
   const generateTrials = (maxTrials) => {
     let newTrials = [];
     for (let repeat = 0; repeat < parameters.blockRepeatsPerRun; repeat++) {
@@ -66,7 +64,6 @@ const App = () => {
     return newTrials.slice(0, maxTrials);
   };
 
-  // Initialize dots
   const initializeDots = (coherence, angle) => {
     const newDots = [];
     for (let i = 0; i < parameters.numberOfDots; i++) {
@@ -84,7 +81,6 @@ const App = () => {
     setCurrentAngle(angle);
   };
 
-  // Update dots
   const updateDots = () => {
     setDots(prevDots =>
       prevDots.map(dot => {
@@ -110,7 +106,6 @@ const App = () => {
     );
   };
 
-  // Draw functions
   const drawFixation = (ctx) => {
     ctx.clearRect(0, 0, 600, 400);
     ctx.fillStyle = 'white';
@@ -121,12 +116,13 @@ const App = () => {
 
   const drawDots = (ctx) => {
     ctx.clearRect(0, 0, 600, 400);
-    ctx.strokeStyle = 'gray';
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(centerX, centerY, parameters.radius, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = '#333';
     dots.forEach(dot => {
       ctx.beginPath();
       ctx.arc(dot.x, dot.y, parameters.dotSize / 2, 0, Math.PI * 2);
@@ -136,45 +132,51 @@ const App = () => {
 
   const drawFeedback = (ctx) => {
     ctx.clearRect(0, 0, 600, 400);
-    ctx.strokeStyle = 'gray';
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(centerX, centerY, parameters.radius, 0, Math.PI * 2);
     ctx.stroke();
 
     const lineLength = 100;
-    ctx.strokeStyle = 'blue';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#1e90ff';
+    ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
     ctx.lineTo(centerX + lineLength * Math.cos(currentAngle), centerY + lineLength * Math.sin(currentAngle));
     ctx.stroke();
 
-    ctx.font = '30px Arial';
+    ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'center';
-    ctx.fillStyle = isCorrect ? 'green' : 'red';
-    ctx.fillText(isCorrect ? 'Correct' : 'Wrong', centerX, centerY - 20);
+    ctx.fillStyle = isCorrect ? '#28a745' : '#dc3545';
+    ctx.fillText(isCorrect ? 'Correct!' : 'Wrong', centerX, centerY - 30);
   };
 
   const drawResults = (ctx) => {
     ctx.clearRect(0, 0, 600, 400);
-    ctx.fillStyle = 'black';
-    ctx.font = '24px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, 600, 400);
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 28px Arial';
     ctx.textAlign = 'center';
+    ctx.fillText('Experiment Results', centerX, centerY - 120);
 
-    const trialCount = trials.length || 0;
+    ctx.font = '24px Arial';
+    const trialCount = trials.length;
     const accuracy = trialCount > 0 ? (correctCount / trialCount * 100).toFixed(2) : '0.00';
     const avgReactionTime = reactionTimes.length > 0
       ? (reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length).toFixed(2)
       : 'N/A';
 
-    ctx.fillText('Experiment Results', centerX, centerY - 100);
     ctx.fillText(`Trials Completed: ${trialCount}`, centerX, centerY - 60);
+    ctx.fillStyle = '#28a745';
     ctx.fillText(`Correct Responses: ${correctCount}`, centerX, centerY - 20);
+    ctx.fillStyle = '#1e90ff';
     ctx.fillText(`Accuracy: ${accuracy}%`, centerX, centerY + 20);
+    ctx.fillStyle = '#ff9800';
     ctx.fillText(`Avg Reaction Time: ${avgReactionTime} ms`, centerX, centerY + 60);
   };
 
-  // Handle click
   const handleClick = (e) => {
     if (trialState === 'response') {
       const rect = canvasRef.current.getBoundingClientRect();
@@ -188,7 +190,6 @@ const App = () => {
     }
   };
 
-  // Handle start button
   const handleStart = () => {
     const maxTrials = parseInt(numTrials, 10);
     if (isNaN(maxTrials) || maxTrials <= 0) {
@@ -198,14 +199,23 @@ const App = () => {
     const newTrials = generateTrials(maxTrials);
     setTrials(newTrials);
     setTrialState('fixation');
-    setInstructions('Please click on the direction of coherent dots');
+    setInstructions('Click the direction of the moving dots.');
     setCurrentTrial(0);
     setStartTime(performance.now());
     setCorrectCount(0);
     setReactionTimes([]);
   };
 
-  // Evaluate response
+  const handleStartAgain = () => {
+    setTrialState('input');
+    setCurrentTrial(0);
+    setInstructions('');
+    setCorrectCount(0);
+    setReactionTimes([]);
+    setTrials([]);
+    setNumTrials('');
+  };
+
   const evaluateResponse = (x, y) => {
     const dx = x - centerX;
     const dy = y - centerY;
@@ -219,7 +229,7 @@ const App = () => {
     const correct = angleDiff < parameters.maxAngleDiff;
     setIsCorrect(correct);
     if (correct) setCorrectCount(prev => prev + 1);
-    console.log(`Trial ${currentTrial}: Angle=${targetAngleDeg.toFixed(1)}°, Response=${responseAngle.toFixed(1)}°, Diff=${angleDiff.toFixed(1)}°, Correct=${correct}, RT=${reactionTimes[reactionTimes.length - 1]?.toFixed(2) || 'N/A'}ms`);
+    console.log(`Trial ${currentTrial + 1}: Angle=${targetAngleDeg.toFixed(1)}°, Response=${responseAngle.toFixed(1)}°, Diff=${angleDiff.toFixed(1)}°, Correct=${correct}, RT=${reactionTimes[reactionTimes.length - 1]?.toFixed(2) || 'N/A'}ms`);
     
     setTrialState('feedback');
     setStartTime(performance.now());
@@ -227,7 +237,6 @@ const App = () => {
     setResponseY(null);
   };
 
-  // Animation loop
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -242,8 +251,7 @@ const App = () => {
           drawFixation(ctx);
           if (timestamp - startTime >= parameters.fixationDuration) {
             setTrialState('dotDisplay');
-            setCurrentTrial(prev => prev + 1);
-            if (trials.length > 0 && currentTrial < trials.length) {
+            if (currentTrial < trials.length) {
               const trial = trials[currentTrial];
               initializeDots(trial.coherence, trial.angle);
               setCurrentStimDuration(trial.stimDuration);
@@ -273,7 +281,7 @@ const App = () => {
         case 'response':
           ctx.clearRect(0, 0, 600, 400);
           if (timestamp - startTime >= parameters.maxResponseDuration) {
-            console.log(`Trial ${currentTrial}: No response`);
+            console.log(`Trial ${currentTrial + 1}: No response`);
             setIsCorrect(false);
             setReactionTimes(prev => [...prev, parameters.maxResponseDuration]);
             setTrialState('feedback');
@@ -291,16 +299,17 @@ const App = () => {
 
         case 'iti':
           ctx.clearRect(0, 0, 600, 400);
-          ctx.fillStyle = 'red';
+          ctx.fillStyle = '#ff4444';
           ctx.beginPath();
           ctx.arc(centerX, centerY, parameters.fixationSize / 2, 0, Math.PI * 2);
           ctx.fill();
           if (timestamp - startTime >= parameters.iti) {
-            if (currentTrial < trials.length) {
+            if (currentTrial + 1 < trials.length) {
+              setCurrentTrial(prev => prev + 1);
               setTrialState('fixation');
             } else {
               setTrialState('results');
-              setInstructions(''); // Clear instructions to focus on results
+              setInstructions('');
             }
             setStartTime(timestamp);
           }
@@ -308,7 +317,7 @@ const App = () => {
 
         case 'results':
           drawResults(ctx);
-          return; // Stop animation
+          return;
 
         default:
           return;
@@ -318,27 +327,35 @@ const App = () => {
 
     if (trialState !== 'input' && trialState !== 'results') {
       animationFrameId = requestAnimationFrame(animate);
+    } else if (trialState === 'results') {
+      drawResults(ctx);
     }
 
     return () => cancelAnimationFrame(animationFrameId);
   }, [trialState, startTime, currentTrial, dots, currentStimDuration, isCorrect, correctCount, reactionTimes, trials]);
 
   return (
-    <div className="App">
-      <canvas ref={canvasRef} width={600} height={400} onClick={handleClick} />
+    <div className="app-container">
+      <h1 className="app-title">Motion Perception Experiment</h1>
+      <canvas ref={canvasRef} width={600} height={400} className="experiment-canvas" onClick={handleClick} />
       {trialState === 'input' ? (
-        <div className="input-container">
+        <div className="input-section">
           <input
             type="number"
             value={numTrials}
             onChange={(e) => setNumTrials(e.target.value)}
-            placeholder="Enter number of trials"
+            placeholder="Number of trials"
             min="1"
+            className="trial-input"
           />
-          <button onClick={handleStart}>Start</button>
+          <button onClick={handleStart} className="start-button">Start Experiment</button>
+        </div>
+      ) : trialState === 'results' ? (
+        <div className="results-section">
+          <button onClick={handleStartAgain} className="start-again-button">Start Again</button>
         </div>
       ) : (
-        instructions && <div id="instructions">{instructions}</div>
+        instructions && <div className="instructions">{instructions}</div>
       )}
     </div>
   );
