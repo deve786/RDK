@@ -130,6 +130,18 @@ const App = () => {
     });
   };
 
+  const drawResponseCross = (ctx) => {
+    ctx.clearRect(0, 0, 600, 400);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(centerX - 20, centerY);
+    ctx.lineTo(centerX + 20, centerY);
+    ctx.moveTo(centerX, centerY - 20);
+    ctx.lineTo(centerX, centerY + 20);
+    ctx.stroke();
+  };
+
   const drawFeedback = (ctx) => {
     ctx.clearRect(0, 0, 600, 400);
     ctx.strokeStyle = '#888';
@@ -150,6 +162,14 @@ const App = () => {
     ctx.textAlign = 'center';
     ctx.fillStyle = isCorrect ? '#28a745' : '#dc3545';
     ctx.fillText(isCorrect ? 'Correct!' : 'Wrong', centerX, centerY - 30);
+  };
+
+  const drawNoResponseFeedback = (ctx) => {
+    ctx.clearRect(0, 0, 600, 400);
+    ctx.fillStyle = '#dc3545';
+    ctx.font = 'bold 32px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('No response', centerX, centerY);
   };
 
   const drawResults = (ctx) => {
@@ -192,14 +212,14 @@ const App = () => {
 
   const handleStart = () => {
     const maxTrials = parseInt(numTrials, 10);
-    if (isNaN(maxTrials) || maxTrials <= 0) {
-      alert('Please enter a valid number of trials (greater than 0)');
+    if (isNaN(maxTrials) || maxTrials <= 0 || maxTrials > 100) {
+      alert('Please enter a valid number of trials (1-100)');
       return;
     }
     const newTrials = generateTrials(maxTrials);
     setTrials(newTrials);
     setTrialState('fixation');
-    setInstructions('Click the direction of the moving dots.');
+    setInstructions('Click the cross to indicate the perceived direction of motion.');
     setCurrentTrial(0);
     setStartTime(performance.now());
     setCorrectCount(0);
@@ -279,7 +299,7 @@ const App = () => {
           break;
 
         case 'response':
-          ctx.clearRect(0, 0, 600, 400);
+          drawResponseCross(ctx);
           if (timestamp - startTime >= parameters.maxResponseDuration) {
             console.log(`Trial ${currentTrial + 1}: No response`);
             setIsCorrect(false);
@@ -290,7 +310,11 @@ const App = () => {
           break;
 
         case 'feedback':
-          drawFeedback(ctx);
+          if (isCorrect === false && reactionTimes[reactionTimes.length - 1] === parameters.maxResponseDuration) {
+            drawNoResponseFeedback(ctx);
+          } else {
+            drawFeedback(ctx);
+          }
           if (timestamp - startTime >= parameters.feedbackDuration) {
             setTrialState('iti');
             setStartTime(timestamp);
