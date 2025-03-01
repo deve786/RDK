@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useRef, useEffect, useState } from 'react';
 import './App.css';
 
@@ -8,11 +7,10 @@ const App = () => {
   const [currentTrial, setCurrentTrial] = useState(0);
   const [instructions, setInstructions] = useState('');
   const [startTime, setStartTime] = useState(0);
-  const [responseX, setResponseX] = useState(null);
-  const [responseY, setResponseY] = useState(null);
+  const [responseAngle, setResponseAngle] = useState(null);
   const [currentCoherence, setCurrentCoherence] = useState(0);
   const [currentAngle, setCurrentAngle] = useState(0);
-  const [currentStimDuration, setCurrentStimDuration] = useState(0);
+  const [currentStimDuration] = useState(800);
   const [isCorrect, setIsCorrect] = useState(null);
   const [correctCount, setCorrectCount] = useState(0);
   const [reactionTimes, setReactionTimes] = useState([]);
@@ -26,13 +24,12 @@ const App = () => {
     iti: 400,
     fixationDuration: 250,
     responseDelay: 500,
-    maxResponseDuration: 4000,
+    maxResponseDuration: 500,
     feedbackDuration: 500,
-    stimDurations: [200, 800],
     coherences: [0.02, 0.04, 0.06, 0.08, 0.1, 0.15, 0.2, 0.25, 0.3, 0.5],
-    angles: [45, 135, 225, 315],
+    angles: [0, 90, 180, 270], // Right, Up, Left, Down
     blockRepeatsPerRun: 2,
-    maxAngleDiff: 22.5,
+    maxAngleDiff: 45,
     numberOfDots: 100,
     dotSize: 0.0115 * 400,
     speed: 0.01 * 400,
@@ -47,13 +44,11 @@ const App = () => {
     for (let repeat = 0; repeat < parameters.blockRepeatsPerRun; repeat++) {
       for (let coh of parameters.coherences) {
         for (let angle of parameters.angles) {
-          for (let dur of parameters.stimDurations) {
-            newTrials.push({
-              coherence: coh,
-              angle: angle * Math.PI / 180,
-              stimDuration: dur,
-            });
-          }
+          newTrials.push({
+            coherence: coh,
+            angle: angle * Math.PI / 180,
+            stimDuration: 800,
+          });
         }
       }
     }
@@ -72,8 +67,7 @@ const App = () => {
       newDots.push({
         x: centerX + r * Math.cos(theta),
         y: centerY + r * Math.sin(theta),
-        isCoherent: Math.random() < coherence,
-        angle: Math.random() * 2 * Math.PI,
+        angle: angle,
       });
     }
     setDots(newDots);
@@ -85,22 +79,44 @@ const App = () => {
     setDots(prevDots =>
       prevDots.map(dot => {
         let newDot = { ...dot };
-        if (newDot.isCoherent) {
-          newDot.x += parameters.speed * Math.cos(currentAngle);
-          newDot.y += parameters.speed * Math.sin(currentAngle);
-        } else {
-          newDot.x += parameters.speed * Math.cos(newDot.angle);
-          newDot.y += parameters.speed * Math.sin(newDot.angle);
-        }
+        newDot.x += parameters.speed * Math.cos(currentAngle);
+        newDot.y -= parameters.speed * Math.sin(currentAngle); // Up is negative y
+
         const dx = newDot.x - centerX;
         const dy = newDot.y - centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
+
         if (distance > parameters.radius) {
-          const r = Math.random() * parameters.radius;
-          const theta = Math.random() * 2 * Math.PI;
-          newDot.x = centerX + r * Math.cos(theta);
-          newDot.y = centerY + r * Math.sin(theta);
+          let newX, newY;
+          const randomWithinRadius = () => Math.random() * 2 - 1;
+
+          if (currentAngle === 0) {
+            newX = centerX - parameters.radius * Math.cos(Math.random() * Math.PI);
+            newY = centerY + parameters.radius * randomWithinRadius();
+          } else if (currentAngle === Math.PI) {
+            newX = centerX + parameters.radius * Math.cos(Math.random() * Math.PI);
+            newY = centerY + parameters.radius * randomWithinRadius();
+          } else if (currentAngle === Math.PI / 2) {
+            newX = centerX + parameters.radius * randomWithinRadius();
+            newY = centerY + parameters.radius * Math.sin(Math.random() * Math.PI);
+          } else if (currentAngle === 3 * Math.PI / 2) {
+            newX = centerX + parameters.radius * randomWithinRadius();
+            newY = centerY - parameters.radius * Math.sin(Math.random() * Math.PI);
+          }
+
+          const newDx = newX - centerX;
+          const newDy = newY - centerY;
+          const newDistance = Math.sqrt(newDx * newDx + newDy * newDy);
+          if (newDistance > parameters.radius) {
+            const scale = parameters.radius / newDistance;
+            newX = centerX + newDx * scale;
+            newY = centerY + newDy * scale;
+          }
+
+          newDot.x = newX;
+          newDot.y = newY;
         }
+
         return newDot;
       })
     );
@@ -130,8 +146,12 @@ const App = () => {
     });
   };
 
-  const drawResponseCross = (ctx) => {
+  const drawResponsePrompt = (ctx) => {
     ctx.clearRect(0, 0, 600, 400);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Press an arrow key or click/tap a direction', centerX, centerY - 10);
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -155,7 +175,7 @@ const App = () => {
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
-    ctx.lineTo(centerX + lineLength * Math.cos(currentAngle), centerY + lineLength * Math.sin(currentAngle));
+    ctx.lineTo(centerX + lineLength * Math.cos(currentAngle), centerY - lineLength * Math.sin(currentAngle));
     ctx.stroke();
 
     ctx.font = 'bold 32px Arial';
@@ -197,17 +217,57 @@ const App = () => {
     ctx.fillText(`Avg Reaction Time: ${avgReactionTime} ms`, centerX, centerY + 60);
   };
 
-  const handleClick = (e) => {
-    if (trialState === 'response') {
-      const rect = canvasRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const reactionTime = performance.now() - responseStartTime;
-      setReactionTimes(prev => [...prev, reactionTime]);
-      setResponseX(x);
-      setResponseY(y);
-      evaluateResponse(x, y);
+  const handleKeyPress = (e) => {
+    if (trialState !== 'response') return;
+
+    let keyAngle = null;
+    switch (e.key) {
+      case 'ArrowRight':
+        keyAngle = 0;
+        break;
+      case 'ArrowUp':
+        keyAngle = 90;
+        break;
+      case 'ArrowLeft':
+        keyAngle = 180;
+        break;
+      case 'ArrowDown':
+        keyAngle = 270;
+        break;
+      default:
+        return;
     }
+
+    const reactionTime = performance.now() - responseStartTime;
+    setReactionTimes(prev => [...prev, reactionTime]);
+    setResponseAngle(keyAngle);
+    evaluateResponse(keyAngle);
+  };
+
+  const handleClick = (e) => {
+    if (trialState !== 'response') return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Calculate angle from center and snap to nearest cardinal direction
+    const dx = x - centerX;
+    const dy = y - centerY;
+    let clickAngle = Math.atan2(-dy, dx) * 180 / Math.PI; // Negate dy due to canvas y-axis
+    if (clickAngle < 0) clickAngle += 360;
+
+    // Snap to nearest 0°, 90°, 180°, 270°
+    let snappedAngle;
+    if (clickAngle >= 315 || clickAngle < 45) snappedAngle = 0; // Right
+    else if (clickAngle >= 45 && clickAngle < 135) snappedAngle = 90; // Up
+    else if (clickAngle >= 135 && clickAngle < 225) snappedAngle = 180; // Left
+    else snappedAngle = 270; // Down
+
+    const reactionTime = performance.now() - responseStartTime;
+    setReactionTimes(prev => [...prev, reactionTime]);
+    setResponseAngle(snappedAngle);
+    evaluateResponse(snappedAngle);
   };
 
   const handleStart = () => {
@@ -219,7 +279,7 @@ const App = () => {
     const newTrials = generateTrials(maxTrials);
     setTrials(newTrials);
     setTrialState('fixation');
-    setInstructions('Click the cross to indicate the perceived direction of motion.');
+    setInstructions('Press an arrow key or click/tap to indicate the perceived direction of motion.');
     setCurrentTrial(0);
     setStartTime(performance.now());
     setCorrectCount(0);
@@ -236,25 +296,19 @@ const App = () => {
     setNumTrials('');
   };
 
-  const evaluateResponse = (x, y) => {
-    const dx = x - centerX;
-    const dy = y - centerY;
-    let responseAngle = Math.atan2(dy, dx) * 180 / Math.PI;
-    if (responseAngle < 0) responseAngle += 360;
-
+  const evaluateResponse = (responseAngleDeg) => {
     const targetAngleDeg = currentAngle * 180 / Math.PI;
-    let angleDiff = Math.abs(responseAngle - targetAngleDeg);
+    let angleDiff = Math.abs(responseAngleDeg - targetAngleDeg);
     if (angleDiff > 180) angleDiff = 360 - angleDiff;
 
     const correct = angleDiff < parameters.maxAngleDiff;
     setIsCorrect(correct);
     if (correct) setCorrectCount(prev => prev + 1);
-    console.log(`Trial ${currentTrial + 1}: Angle=${targetAngleDeg.toFixed(1)}°, Response=${responseAngle.toFixed(1)}°, Diff=${angleDiff.toFixed(1)}°, Correct=${correct}, RT=${reactionTimes[reactionTimes.length - 1]?.toFixed(2) || 'N/A'}ms`);
+    console.log(`Trial ${currentTrial + 1}: Angle=${targetAngleDeg.toFixed(1)}°, Response=${responseAngleDeg}°, Diff=${angleDiff.toFixed(1)}°, Correct=${correct}, RT=${reactionTimes[reactionTimes.length - 1]?.toFixed(2) || 'N/A'}ms`);
     
     setTrialState('feedback');
     setStartTime(performance.now());
-    setResponseX(null);
-    setResponseY(null);
+    setResponseAngle(null);
   };
 
   useEffect(() => {
@@ -274,7 +328,6 @@ const App = () => {
             if (currentTrial < trials.length) {
               const trial = trials[currentTrial];
               initializeDots(trial.coherence, trial.angle);
-              setCurrentStimDuration(trial.stimDuration);
             }
             setStartTime(timestamp);
           }
@@ -299,7 +352,7 @@ const App = () => {
           break;
 
         case 'response':
-          drawResponseCross(ctx);
+          drawResponsePrompt(ctx);
           if (timestamp - startTime >= parameters.maxResponseDuration) {
             console.log(`Trial ${currentTrial + 1}: No response`);
             setIsCorrect(false);
@@ -356,7 +409,14 @@ const App = () => {
     }
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [trialState, startTime, currentTrial, dots, currentStimDuration, isCorrect, correctCount, reactionTimes, trials]);
+  }, [trialState, startTime, currentTrial, dots, isCorrect, correctCount, reactionTimes, trials]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyPress);
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [trialState, responseStartTime, currentAngle, reactionTimes, currentTrial]);
 
   return (
     <div className="app-container">
