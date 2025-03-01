@@ -148,7 +148,7 @@ const App = () => {
 
   const drawResponsePrompt = (ctx) => {
     ctx.clearRect(0, 0, 600, 400);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#000';
     ctx.font = 'bold 20px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('Press an arrow key or click/tap a direction', centerX, centerY - 10);
