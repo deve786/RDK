@@ -80,7 +80,7 @@ const App = () => {
       prevDots.map(dot => {
         let newDot = { ...dot };
         newDot.x += parameters.speed * Math.cos(currentAngle);
-        newDot.y -= parameters.speed * Math.sin(currentAngle); // Up is negative y
+        newDot.y -= parameters.speed * Math.sin(currentAngle);
 
         const dx = newDot.x - centerX;
         const dy = newDot.y - centerY;
@@ -244,25 +244,45 @@ const App = () => {
     evaluateResponse(keyAngle);
   };
 
-  const handleClick = (e) => {
+  const getCoordinatesFromEvent = (e) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width; // Adjust for CSS scaling
+    const scaleY = canvas.height / rect.height;
+
+    let clientX, clientY;
+    if (e.type === 'click') {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    } else if (e.type === 'touchstart') {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    }
+
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+    return { x, y };
+  };
+
+  const handleClickOrTouch = (e) => {
     if (trialState !== 'response') return;
+    e.preventDefault(); // Prevent default touch behavior
 
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = getCoordinatesFromEvent(e);
+    console.log(`Click/Touch: x=${x.toFixed(2)}, y=${y.toFixed(2)}`); // Debug log
 
-    // Calculate angle from center and snap to nearest cardinal direction
     const dx = x - centerX;
     const dy = y - centerY;
-    let clickAngle = Math.atan2(-dy, dx) * 180 / Math.PI; // Negate dy due to canvas y-axis
+    let clickAngle = Math.atan2(-dy, dx) * 180 / Math.PI; // Negate dy for canvas y-axis
     if (clickAngle < 0) clickAngle += 360;
 
-    // Snap to nearest 0°, 90°, 180°, 270°
     let snappedAngle;
     if (clickAngle >= 315 || clickAngle < 45) snappedAngle = 0; // Right
     else if (clickAngle >= 45 && clickAngle < 135) snappedAngle = 90; // Up
     else if (clickAngle >= 135 && clickAngle < 225) snappedAngle = 180; // Left
     else snappedAngle = 270; // Down
+
+    console.log(`Snapped Angle: ${snappedAngle}°`); // Debug log
 
     const reactionTime = performance.now() - responseStartTime;
     setReactionTimes(prev => [...prev, reactionTime]);
@@ -304,7 +324,7 @@ const App = () => {
     const correct = angleDiff < parameters.maxAngleDiff;
     setIsCorrect(correct);
     if (correct) setCorrectCount(prev => prev + 1);
-    console.log(`Trial ${currentTrial + 1}: Angle=${targetAngleDeg.toFixed(1)}°, Response=${responseAngleDeg}°, Diff=${angleDiff.toFixed(1)}°, Correct=${correct}, RT=${reactionTimes[reactionTimes.length - 1]?.toFixed(2) || 'N/A'}ms`);
+    console.log(`Trial ${currentTrial + 1}: Target=${targetAngleDeg.toFixed(1)}°, Response=${responseAngleDeg}°, Diff=${angleDiff.toFixed(1)}°, Correct=${correct}, RT=${reactionTimes[reactionTimes.length - 1]?.toFixed(2) || 'N/A'}ms`);
     
     setTrialState('feedback');
     setStartTime(performance.now());
@@ -412,16 +432,22 @@ const App = () => {
   }, [trialState, startTime, currentTrial, dots, isCorrect, correctCount, reactionTimes, trials]);
 
   useEffect(() => {
+    const canvas = canvasRef.current;
     document.addEventListener('keydown', handleKeyPress);
+    canvas.addEventListener('click', handleClickOrTouch);
+    canvas.addEventListener('touchstart', handleClickOrTouch);
+
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
+      canvas.removeEventListener('click', handleClickOrTouch);
+      canvas.removeEventListener('touchstart', handleClickOrTouch);
     };
   }, [trialState, responseStartTime, currentAngle, reactionTimes, currentTrial]);
 
   return (
     <div className="app-container">
       <h1 className="app-title">Motion Perception Experiment</h1>
-      <canvas ref={canvasRef} width={600} height={400} className="experiment-canvas" onClick={handleClick} />
+      <canvas ref={canvasRef} width={600} height={400} className="experiment-canvas" />
       {trialState === 'input' ? (
         <div className="input-section">
           <input
@@ -439,7 +465,7 @@ const App = () => {
           <button onClick={handleStartAgain} className="start-again-button">Start Again</button>
         </div>
       ) : (
-        instructions && <div className="instructions">{instructions}</div>
+        instructions && <div className="instructions " style={{color:'black'}}>{instructions}</div>
       )}
     </div>
   );
