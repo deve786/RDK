@@ -299,7 +299,7 @@ const App = () => {
     const newTrials = generateTrials(maxTrials);
     setTrials(newTrials);
     setTrialState('fixation');
-    setInstructions('Press an arrow key or click/tap to indicate the perceived direction of motion.');
+    setInstructions(<span style={{color: 'red'}}>Press</span>);
     setCurrentTrial(0);
     setStartTime(performance.now());
     setCorrectCount(0);
