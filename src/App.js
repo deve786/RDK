@@ -18,6 +18,19 @@ const App = () => {
   const [dots, setDots] = useState([]);
   const [trials, setTrials] = useState([]);
   const [numTrials, setNumTrials] = useState('');
+  const [blockIndex, setBlockIndex] = useState(0); // Track current block
+  const [blockType, setBlockType] = useState('practice'); // 'practice' or 'experimental'
+  const [blockInstructions, setBlockInstructions] = useState('');
+
+  const blockStructure = [
+    { type: 'practice', coherence: null, trials: 10 },
+    { type: 'experimental', coherence: 0.1, trials: 10 },
+    { type: 'experimental', coherence: 0.3, trials: 10 },
+    { type: 'experimental', coherence: 0.6, trials: 10 },
+    { type: 'experimental', coherence: 0.1, trials: 10 },
+    { type: 'experimental', coherence: 0.3, trials: 10 },
+    { type: 'experimental', coherence: 0.6, trials: 10 },
+  ];
 
   const parameters = {
     fixationSize: 0.03 * 400,
@@ -290,20 +303,60 @@ const App = () => {
     evaluateResponse(snappedAngle);
   };
 
-  const handleStart = () => {
-    const maxTrials = parseInt(numTrials, 10);
-    if (isNaN(maxTrials) || maxTrials <= 0 || maxTrials > 100) {
-      alert('Please enter a valid number of trials (1-100)');
-      return;
+  const generateBlockTrials = (block) => {
+    let newTrials = [];
+    if (block.type === 'practice') {
+      // Practice: random coherence and angle
+      for (let i = 0; i < block.trials; i++) {
+        const coh = parameters.coherences[Math.floor(Math.random() * parameters.coherences.length)];
+        const angle = parameters.angles[Math.floor(Math.random() * parameters.angles.length)];
+        newTrials.push({
+          coherence: coh,
+          angle: angle * Math.PI / 180,
+          stimDuration: 800,
+        });
+      }
+    } else {
+      // Experimental: fixed coherence, random angle
+      for (let i = 0; i < block.trials; i++) {
+        const angle = parameters.angles[Math.floor(Math.random() * parameters.angles.length)];
+        newTrials.push({
+          coherence: block.coherence,
+          angle: angle * Math.PI / 180,
+          stimDuration: 800,
+        });
+      }
     }
-    const newTrials = generateTrials(maxTrials);
-    setTrials(newTrials);
+    // Shuffle trials
+    for (let i = newTrials.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newTrials[i], newTrials[j]] = [newTrials[j], newTrials[i]];
+    }
+    return newTrials;
+  };
+
+  const startBlock = (blockIdx) => {
+    const block = blockStructure[blockIdx];
+    setBlockIndex(blockIdx);
+    setBlockType(block.type);
+    setTrials(generateBlockTrials(block));
     setTrialState('fixation');
-    setInstructions(<span style={{color: 'red'}}>Press</span>);
+    setInstructions('');
     setCurrentTrial(0);
     setStartTime(performance.now());
     setCorrectCount(0);
     setReactionTimes([]);
+    if (block.type === 'practice') {
+      setBlockInstructions('Practice Block: Try to get used to the task.');
+    } else {
+      let cohLabel = block.coherence === 0.1 ? 'Low' : block.coherence === 0.3 ? 'Medium' : 'High';
+      setBlockInstructions(`Experimental Block ${blockIdx}: ${cohLabel} Coherence (${block.coherence * 100}% coherent dots)`);
+    }
+  };
+
+  const handleStart = () => {
+    // Start with practice block
+    startBlock(0);
   };
 
   const handleStartAgain = () => {
@@ -314,6 +367,9 @@ const App = () => {
     setReactionTimes([]);
     setTrials([]);
     setNumTrials('');
+    setBlockIndex(0);
+    setBlockType('practice');
+    setBlockInstructions('');
   };
 
   const evaluateResponse = (responseAngleDeg) => {
@@ -405,8 +461,14 @@ const App = () => {
               setCurrentTrial(prev => prev + 1);
               setTrialState('fixation');
             } else {
-              setTrialState('results');
-              setInstructions('');
+              // Block finished
+              if (blockIndex + 1 < blockStructure.length) {
+                setTrialState('blockTransition');
+                setInstructions('');
+              } else {
+                setTrialState('results');
+                setInstructions('');
+              }
             }
             setStartTime(timestamp);
           }
@@ -429,19 +491,44 @@ const App = () => {
     }
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [trialState, startTime, currentTrial, dots, isCorrect, correctCount, reactionTimes, trials]);
+  }, [trialState, startTime, currentTrial, dots, isCorrect, correctCount, reactionTimes, trials, blockIndex]);
 
+  // Block transition effect
+  useEffect(() => {
+    if (trialState === 'blockTransition') {
+      setBlockInstructions(
+        blockIndex + 1 < blockStructure.length
+          ? `Block ${blockIndex + 2} starting soon. Click to continue.`
+          : ''
+      );
+      const handleContinue = () => {
+        startBlock(blockIndex + 1);
+        setTrialState('fixation');
+      };
+      window.addEventListener('click', handleContinue, { once: true });
+      return () => window.removeEventListener('click', handleContinue);
+    }
+  }, [trialState, blockIndex]);
+
+  // Remove global keydown listener, and add it only during 'response' state
+  useEffect(() => {
+    if (trialState === 'response') {
+      document.addEventListener('keydown', handleKeyPress);
+      return () => document.removeEventListener('keydown', handleKeyPress);
+    }
+  }, [trialState, responseStartTime, currentAngle, reactionTimes, currentTrial]);
+
+  // Remove old useEffect for click/touchstart, and add listeners only during 'response' state
   useEffect(() => {
     const canvas = canvasRef.current;
-    document.addEventListener('keydown', handleKeyPress);
-    canvas.addEventListener('click', handleClickOrTouch);
-    canvas.addEventListener('touchstart', handleClickOrTouch);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyPress);
-      canvas.removeEventListener('click', handleClickOrTouch);
-      canvas.removeEventListener('touchstart', handleClickOrTouch);
-    };
+    if (trialState === 'response') {
+      canvas.addEventListener('click', handleClickOrTouch);
+      canvas.addEventListener('touchstart', handleClickOrTouch);
+      return () => {
+        canvas.removeEventListener('click', handleClickOrTouch);
+        canvas.removeEventListener('touchstart', handleClickOrTouch);
+      };
+    }
   }, [trialState, responseStartTime, currentAngle, reactionTimes, currentTrial]);
 
   return (
@@ -450,22 +537,16 @@ const App = () => {
       <canvas ref={canvasRef} width={600} height={400} className="experiment-canvas" />
       {trialState === 'input' ? (
         <div className="input-section">
-          <input
-            type="number"
-            value={numTrials}
-            onChange={(e) => setNumTrials(e.target.value)}
-            placeholder="Number of trials"
-            min="1"
-            className="trial-input"
-          />
           <button onClick={handleStart} className="start-button">Start Experiment</button>
         </div>
       ) : trialState === 'results' ? (
         <div className="results-section">
           <button onClick={handleStartAgain} className="start-again-button">Start Again</button>
         </div>
+      ) : trialState === 'blockTransition' ? (
+        <div className="instructions" style={{color:'black'}}>{blockInstructions}</div>
       ) : (
-        instructions && <div className="instructions " style={{color:'black'}}>{instructions}</div>
+        (instructions || blockInstructions) && <div className="instructions" style={{color:'black'}}>{instructions || blockInstructions}</div>
       )}
     </div>
   );
