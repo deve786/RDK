@@ -229,7 +229,7 @@ const App = () => {
     ctx.fillStyle = '#333';
     ctx.font = 'bold 28px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Experiment Results', centerX, 40);
+    ctx.fillText('Experiment Results', centerX, 150);
 
     // Filter out practice block and get experimental blocks
     const experimentalBlocks = blockResults.filter(block => block.blockType === 'experimental');
@@ -241,33 +241,13 @@ const App = () => {
     const totalRT = experimentalBlocks.reduce((sum, block) => sum + (block.avgReactionTime * block.trialsCompleted), 0);
     const avgTotalRT = totalTrials > 0 ? (totalRT / totalTrials).toFixed(2) : 'N/A';
 
-    // Draw individual block results
-    ctx.font = 'bold 20px Arial';
-    ctx.fillText('Block Results:', centerX, 80);
-    ctx.font = '16px Arial';
-    ctx.textAlign = 'left';
-
-    experimentalBlocks.forEach((block, index) => {
-      const y = 110 + index * 35;  // Reduced spacing between blocks from 40 to 35
-      const coherenceLabel = block.coherence === 0.1 ? 'Low' : block.coherence === 0.3 ? 'Medium' : 'High';
-      ctx.fillStyle = '#333';
-      ctx.fillText(`Block ${block.blockNumber}: ${coherenceLabel} (${block.coherence * 100}%)`, 50, y);
-      ctx.fillStyle = '#28a745';
-      ctx.fillText(`Accuracy: ${block.accuracy.toFixed(2)}%`, 280, y);
-      ctx.fillStyle = '#ff9800';
-      ctx.fillText(`RT: ${block.avgReactionTime.toFixed(2)}ms`, 450, y);
-    });
-
-    // Draw total results with more spacing
+    // Draw total results centered
     ctx.textAlign = 'center';
     ctx.font = 'bold 24px Arial';
-    ctx.fillStyle = '#333';
-    ctx.fillText('Overall Results', centerX, 350,);
-    ctx.font = '20px Arial';
     ctx.fillStyle = '#28a745';
-    ctx.fillText(`Total Accuracy: ${totalAccuracy}%`, centerX, 385);
+    ctx.fillText(`Total Accuracy: ${totalAccuracy}%`, centerX, 200);
     ctx.fillStyle = '#ff9800';
-    ctx.fillText(`Average Reaction Time: ${avgTotalRT}ms`, centerX, 415);
+    ctx.fillText(`Average Reaction Time: ${avgTotalRT}ms`, centerX, 250);
   };
 
   const handleKeyPress = (e) => {
