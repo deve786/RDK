@@ -21,6 +21,7 @@ const App = () => {
   const [blockIndex, setBlockIndex] = useState(0); // Track current block
   const [blockType, setBlockType] = useState('practice'); // 'practice' or 'experimental'
   const [blockInstructions, setBlockInstructions] = useState('');
+  const [blockResults, setBlockResults] = useState([]); // Store results for each block
 
   const blockStructure = [
     { type: 'practice', coherence: null, trials: 10 },
@@ -74,15 +75,25 @@ const App = () => {
 
   const initializeDots = (coherence, angle) => {
     const newDots = [];
+    const nCoherent = Math.round(parameters.numberOfDots * coherence);
+    
     for (let i = 0; i < parameters.numberOfDots; i++) {
       const r = Math.random() * parameters.radius;
       const theta = Math.random() * 2 * Math.PI;
       newDots.push({
         x: centerX + r * Math.cos(theta),
         y: centerY + r * Math.sin(theta),
-        angle: angle,
+        isCoherent: i < nCoherent, // First nCoherent dots are coherent
+        targetAngle: angle, // Store the target angle for coherent dots
       });
     }
+    
+    // Shuffle so coherent/incoherent dots are randomly distributed
+    for (let i = newDots.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newDots[i], newDots[j]] = [newDots[j], newDots[i]];
+    }
+    
     setDots(newDots);
     setCurrentCoherence(coherence);
     setCurrentAngle(angle);
@@ -92,36 +103,42 @@ const App = () => {
     setDots(prevDots =>
       prevDots.map(dot => {
         let newDot = { ...dot };
-        newDot.x += parameters.speed * Math.cos(currentAngle);
-        newDot.y -= parameters.speed * Math.sin(currentAngle);
+        
+        // For coherent dots, use the stored target angle consistently
+        // For incoherent dots, use a new random direction each frame
+        const moveAngle = dot.isCoherent ? dot.targetAngle : Math.random() * 2 * Math.PI;
+        
+        newDot.x += parameters.speed * Math.cos(moveAngle);
+        newDot.y -= parameters.speed * Math.sin(moveAngle);
 
         const dx = newDot.x - centerX;
         const dy = newDot.y - centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance > parameters.radius) {
+          // Reset dot to opposite side when it exits the boundary
           let newX, newY;
-          const randomWithinRadius = () => Math.random() * 2 - 1;
-
-          if (currentAngle === 0) {
-            newX = centerX - parameters.radius * Math.cos(Math.random() * Math.PI);
-            newY = centerY + parameters.radius * randomWithinRadius();
-          } else if (currentAngle === Math.PI) {
-            newX = centerX + parameters.radius * Math.cos(Math.random() * Math.PI);
-            newY = centerY + parameters.radius * randomWithinRadius();
-          } else if (currentAngle === Math.PI / 2) {
-            newX = centerX + parameters.radius * randomWithinRadius();
-            newY = centerY + parameters.radius * Math.sin(Math.random() * Math.PI);
-          } else if (currentAngle === 3 * Math.PI / 2) {
-            newX = centerX + parameters.radius * randomWithinRadius();
-            newY = centerY - parameters.radius * Math.sin(Math.random() * Math.PI);
+          
+          if (dot.isCoherent) {
+            // For coherent dots, reset on the opposite side based on their direction
+            const oppositeAngle = dot.targetAngle + Math.PI;
+            const resetDistance = parameters.radius * 0.9; // Slightly inside the boundary
+            newX = centerX + resetDistance * Math.cos(oppositeAngle) + (Math.random() - 0.5) * parameters.radius * 0.3;
+            newY = centerY - resetDistance * Math.sin(oppositeAngle) + (Math.random() - 0.5) * parameters.radius * 0.3;
+          } else {
+            // For incoherent dots, reset randomly within the circle
+            const r = Math.random() * parameters.radius * 0.8;
+            const theta = Math.random() * 2 * Math.PI;
+            newX = centerX + r * Math.cos(theta);
+            newY = centerY + r * Math.sin(theta);
           }
 
+          // Ensure the new position is within bounds
           const newDx = newX - centerX;
           const newDy = newY - centerY;
           const newDistance = Math.sqrt(newDx * newDx + newDy * newDy);
           if (newDistance > parameters.radius) {
-            const scale = parameters.radius / newDistance;
+            const scale = parameters.radius * 0.9 / newDistance;
             newX = centerX + newDx * scale;
             newY = centerY + newDy * scale;
           }
@@ -212,22 +229,45 @@ const App = () => {
     ctx.fillStyle = '#333';
     ctx.font = 'bold 28px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Experiment Results', centerX, centerY - 120);
+    ctx.fillText('Experiment Results', centerX, 40);
 
-    ctx.font = '24px Arial';
-    const trialCount = trials.length;
-    const accuracy = trialCount > 0 ? (correctCount / trialCount * 100).toFixed(2) : '0.00';
-    const avgReactionTime = reactionTimes.length > 0
-      ? (reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length).toFixed(2)
-      : 'N/A';
+    // Filter out practice block and get experimental blocks
+    const experimentalBlocks = blockResults.filter(block => block.blockType === 'experimental');
 
-    ctx.fillText(`Trials Completed: ${trialCount}`, centerX, centerY - 60);
+    // Calculate total results (excluding practice)
+    const totalTrials = experimentalBlocks.reduce((sum, block) => sum + block.trialsCompleted, 0);
+    const totalCorrect = experimentalBlocks.reduce((sum, block) => sum + block.correctResponses, 0);
+    const totalAccuracy = totalTrials > 0 ? (totalCorrect / totalTrials * 100).toFixed(2) : '0.00';
+    const totalRT = experimentalBlocks.reduce((sum, block) => sum + (block.avgReactionTime * block.trialsCompleted), 0);
+    const avgTotalRT = totalTrials > 0 ? (totalRT / totalTrials).toFixed(2) : 'N/A';
+
+    // Draw individual block results
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText('Block Results:', centerX, 80);
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'left';
+
+    experimentalBlocks.forEach((block, index) => {
+      const y = 110 + index * 35;  // Reduced spacing between blocks from 40 to 35
+      const coherenceLabel = block.coherence === 0.1 ? 'Low' : block.coherence === 0.3 ? 'Medium' : 'High';
+      ctx.fillStyle = '#333';
+      ctx.fillText(`Block ${block.blockNumber}: ${coherenceLabel} (${block.coherence * 100}%)`, 50, y);
+      ctx.fillStyle = '#28a745';
+      ctx.fillText(`Accuracy: ${block.accuracy.toFixed(2)}%`, 280, y);
+      ctx.fillStyle = '#ff9800';
+      ctx.fillText(`RT: ${block.avgReactionTime.toFixed(2)}ms`, 450, y);
+    });
+
+    // Draw total results with more spacing
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 24px Arial';
+    ctx.fillStyle = '#333';
+    ctx.fillText('Overall Results', centerX, 350,);
+    ctx.font = '20px Arial';
     ctx.fillStyle = '#28a745';
-    ctx.fillText(`Correct Responses: ${correctCount}`, centerX, centerY - 20);
-    ctx.fillStyle = '#1e90ff';
-    ctx.fillText(`Accuracy: ${accuracy}%`, centerX, centerY + 20);
+    ctx.fillText(`Total Accuracy: ${totalAccuracy}%`, centerX, 385);
     ctx.fillStyle = '#ff9800';
-    ctx.fillText(`Avg Reaction Time: ${avgReactionTime} ms`, centerX, centerY + 60);
+    ctx.fillText(`Average Reaction Time: ${avgTotalRT}ms`, centerX, 415);
   };
 
   const handleKeyPress = (e) => {
@@ -350,7 +390,9 @@ const App = () => {
       setBlockInstructions('Practice Block: Try to get used to the task.');
     } else {
       let cohLabel = block.coherence === 0.1 ? 'Low' : block.coherence === 0.3 ? 'Medium' : 'High';
-      setBlockInstructions(`Experimental Block ${blockIdx}: ${cohLabel} Coherence (${block.coherence * 100}% coherent dots)`);
+      // blockIdx 0 is practice, so experimental blocks start from 1
+      const experimentalBlockNum = blockIdx;
+      setBlockInstructions(`Block ${experimentalBlockNum}: ${cohLabel} Coherence (${Math.round(block.coherence * 100)}% coherent dots)`);
     }
   };
 
@@ -461,7 +503,19 @@ const App = () => {
               setCurrentTrial(prev => prev + 1);
               setTrialState('fixation');
             } else {
-              // Block finished
+              // Block finished - save block results
+              const currentBlock = blockStructure[blockIndex];
+              const blockResult = {
+                blockNumber: currentBlock.type === 'practice' ? 'Practice' : blockIndex,
+                blockType: currentBlock.type,
+                coherence: currentBlock.coherence,
+                trialsCompleted: trials.length,
+                correctResponses: correctCount,
+                accuracy: trials.length > 0 ? (correctCount / trials.length * 100) : 0,
+                avgReactionTime: reactionTimes.length > 0 ? (reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length) : 0
+              };
+              setBlockResults(prev => [...prev, blockResult]);
+              
               if (blockIndex + 1 < blockStructure.length) {
                 setTrialState('blockTransition');
                 setInstructions('');
@@ -498,7 +552,9 @@ const App = () => {
     if (trialState === 'blockTransition') {
       setBlockInstructions(
         blockIndex + 1 < blockStructure.length
-          ? `Block ${blockIndex + 2} starting soon. Click to continue.`
+          ? blockStructure[blockIndex + 1].type === 'practice' 
+            ? 'Practice block starting soon. Click to continue.'
+            : `Block ${blockIndex + 1} starting soon. Click to continue.`
           : ''
       );
       const handleContinue = () => {
