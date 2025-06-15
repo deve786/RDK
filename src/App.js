@@ -35,10 +35,10 @@ const App = () => {
 
   const parameters = {
     fixationSize: 0.03 * 400,
-    iti: 400,
-    fixationDuration: 250,
-    responseDelay: 500,
-    maxResponseDuration: 500,
+    iti: 1500, // Increased gap between trials
+    fixationDuration: 500,
+    responseDelay: 500, // Reduced delay before response window
+    maxResponseDuration: 500, // Maximum time to respond
     feedbackDuration: 500,
     coherences: [0.02, 0.04, 0.06, 0.08, 0.1, 0.15, 0.2, 0.25, 0.3, 0.5],
     angles: [0, 90, 180, 270], // Right, Up, Left, Down
@@ -326,12 +326,11 @@ const App = () => {
   const generateBlockTrials = (block) => {
     let newTrials = [];
     if (block.type === 'practice') {
-      // Practice: random coherence and angle
+      // Practice: fixed 60% coherence with random angles
       for (let i = 0; i < block.trials; i++) {
-        const coh = parameters.coherences[Math.floor(Math.random() * parameters.coherences.length)];
         const angle = parameters.angles[Math.floor(Math.random() * parameters.angles.length)];
         newTrials.push({
-          coherence: coh,
+          coherence: 0.6, // Fixed 60% coherence for practice
           angle: angle * Math.PI / 180,
           stimDuration: 800,
         });
