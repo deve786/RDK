@@ -38,7 +38,7 @@ const App = () => {
     iti: 1500, // Increased gap between trials
     fixationDuration: 500,
     responseDelay: 500, // Reduced delay before response window
-    maxResponseDuration: 500, // Maximum time to respond
+    maxResponseDuration: 1500, // Maximum time to respond
     feedbackDuration: 500,
     coherences: [0.02, 0.04, 0.06, 0.08, 0.1, 0.15, 0.2, 0.25, 0.3, 0.5],
     angles: [0, 90, 180, 270], // Right, Up, Left, Down
