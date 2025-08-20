@@ -16,8 +16,8 @@ body {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 700px;
+  /* width: 100%; */
+  /* max-width: 700px; */
   margin: 10px;
   transition: all 0.3s ease-in-out;
 }
@@ -124,8 +124,8 @@ body {
 
 @media (max-width: 480px) {
   .app-container {
-    padding: 15px;
-    margin: 5px;
+    padding: 10px;
+    /* margin: 5px; */
   }
 
   .app-title {
