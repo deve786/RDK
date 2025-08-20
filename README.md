@@ -39,6 +39,33 @@ Instead, it will copy all the configuration files and the transitive dependencie
 
 You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
 
+## Build an offline Android app (Capacitor)
+
+This project includes a simple service worker to enable offline usage and a `capacitor.config.json` so you can build a native Android app that bundles the web code.
+
+Quick steps (Windows PowerShell):
+
+1. Install Capacitor CLI and core if you don't have them globally:
+
+	npm install @capacitor/core @capacitor/cli --save-dev
+
+2. Build the production web app and copy to the native project:
+
+	npm run android:copy
+
+3. Add Android (only first time):
+
+	npm run android:add
+
+4. Sync and open Android Studio:
+
+	npm run android
+
+Notes:
+- The service worker `public/sw.js` is registered only in production builds (NODE_ENV=production). The `android` script runs a production build before syncing.
+- The app will work offline for cached routes/assets. If you change routing or add external network resources, update `public/sw.js` to include them in the cache or handle them appropriately.
+
+
 ## Learn More
 
 You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).

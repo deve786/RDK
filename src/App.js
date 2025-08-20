@@ -181,7 +181,7 @@ const App = () => {
     ctx.fillStyle = '#000';
     ctx.font = 'bold 20px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Press an arrow key or click/tap a direction', centerX, centerY - 10);
+    ctx.fillText('Press', centerX, centerY - 10);
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.beginPath();

@@ -16,7 +16,11 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "android:add": "npx cap add android",
+    "android:copy": "npm run build && npx cap copy",
+    "android:open": "npx cap open android",
+    "android": "npm run build && npx cap sync android && npx cap open android"
   },
   "eslintConfig": {
     "extends": [
@@ -35,5 +39,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.4.2",
+    "@capacitor/cli": "^7.4.2",
+    "@capacitor/core": "^7.4.2"
   }
 }

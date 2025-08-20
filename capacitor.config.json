@@ -1,0 +1,6 @@
+{
+  "appId": "com.example.rdk",
+  "appName": "RDK",
+  "webDir": "build",
+  "bundledWebRuntime": false
+}
