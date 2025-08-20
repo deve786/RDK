@@ -44,7 +44,7 @@ jobs:
       run: npm ci || npm install
 
     - name: Build web assets
-      run: npm run build
+      run: CI=false npm run build
 
     - name: Add Android platform (if missing) and sync web assets
       run: |
